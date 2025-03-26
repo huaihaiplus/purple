@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命理综合分析</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js"></script>
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .result-section {
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .result-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 600;
+            padding-bottom: 10px;
+            position: relative;
+        }
+        
+        .result-section h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: #007bff;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .info-item strong {
+            color: #007bff;
+        }
+        
+        .content {
+            line-height: 1.6;
+            color: #444;
+        }
+        
+        .loading {
+            padding: 15px;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .analysis-form {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .analysis-form select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .analysis-form button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .analysis-form button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loader" id="loader"></div>
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 30px; color: #333;">命理综合分析系统</h1>
+        
+        <!-- 宫位分析表单 -->
+        <div class="analysis-form result-section">
+            <h2>宫位分析</h2>
+            <form id="palaceForm" onsubmit="submitPalaceAnalysis(event)">
+                <label for="palace">选择宫位:</label>
+                <select id="palace" name="palace">
+                    <option value="命宫">命宫</option>
+                    <option value="兄弟宫">兄弟宫</option>
+                    <option value="夫妻宫">夫妻宫</option>
+                    <option value="子女宫">子女宫</option>
+                    <option value="财帛宫">财帛宫</option>
+                    <option value="疾厄宫">疾厄宫</option>
+                    <option value="迁移宫">迁移宫</option>
+                    <option value="仆役宫">仆役宫</option>
+                    <option value="官禄宫">官禄宫</option>
+                    <option value="田宅宫">田宅宫</option>
+                    <option value="福德宫">福德宫</option>
+                    <option value="父母宫">父母宫</option>
+                </select>
+                <div style="text-align: center;">
+                    <button type="submit">开始分析</button>
+                </div>
+            </form>
+            <div id="result"></div>
+        </div>
+
+        <!-- 大限流年流月流日分析表单 -->
+        <div class="analysis-form result-section">
+            <h2>大限流年流月流日分析</h2>
+            <form id="timeAnalysisForm" onsubmit="submitTimeAnalysis(event)">
+                <label for="timeType">选择分析类型:</label>
+                <select id="timeType" name="timeType">
+                    <option value="大限">大限</option>
+                    <option value="流年">流年</option>
+                    <option value="流月">流月</option>
+                    <option value="流日">流日</option>
+                </select>
+                <label for="selectedDate">选择日期:(农历)</label>
+                <input type="date" id="selectedDate" name="selectedDate" required>
+                <label for="concern">关心的事务（可选，如财运、爱情等）:</label>
+                <input type="text" id="concern" name="concern" placeholder="请输入你关心的事务" style="
+                    width: 100%;
+                    padding: 12px;
+                    margin: 10px 0;
+                    border: 2px solid #007bff;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    transition: all 0.3s ease;
+                ">
+                <div style="text-align: center;">
+                    <button type="submit">开始分析</button>
+                </div>
+            </form>
+            <div id="timeResult"></div>
+        </div>
+
+        <!-- 初始展示命宫信息 -->
+        <div class="result-section">
+            <h2>命宫分析</h2>
+            <div class="content">
+                {% if ming_gong %}
+                    <div id="ming-gong-content"></div>
+                    <script>
+                        document.getElementById('ming-gong-content').innerHTML = marked(`{{ ming_gong|safe }}`);
+                    </script>
+                {% else %}
+                    暂无命宫分析结果
+                {% endif %}
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ url_for('download_md') }}" class="btn-download">导出分析结果为 Markdown</a>
+            </div>
+        </div>
+
+        <style>
+            .btn-download {
+                background: #007bff;
+                color: white;
+                padding: 12px 30px;
+                border: none;
+                border-radius: 25px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-block;
+            }
+
+            .btn-download:hover {
+                background: #0056b3;
+                transform: translateY(-2px);
+            }
+        </style>
+    </div>
+
+    <script>
+        async function submitPalaceAnalysis(event) {
+            event.preventDefault();
+            const resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = "<p class='loading'>正在分析中，请稍候...(大约一分钟)</p>";
+            
+            try {
+                const response = await fetch("{{ url_for('analyze') }}", {
+                    method: "POST",
+                    body: new FormData(document.getElementById("palaceForm"))
+                });
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>分析结果</h3>
+                    <div class="result-box">${marked(data.result)}</div>
+                `;
+            } catch (error) {
+                console.error("分析出错:", error);
+                resultDiv.innerHTML = "<p class='loading'>分析失败，请重试</p>";
+            }
+        }
+
+        async function submitTimeAnalysis(event) {
+            event.preventDefault();
+            const resultDiv = document.getElementById("timeResult");
+            resultDiv.innerHTML = "<p class='loading'>正在分析中，请稍候...(大约一分钟)</p>";
+            
+            try {
+                const response = await fetch("{{ url_for('analyze_time') }}", {
+                    method: "POST",
+                    body: new FormData(document.getElementById("timeAnalysisForm"))
+                });
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>分析结果</h3>
+                    <div class="result-box">${marked(data.result)}</div>
+                `;
+            } catch (error) {
+                console.error("分析出错:", error);
+                resultDiv.innerHTML = "<p class='loading'>分析失败，请重试</p>";
+            }
+        }
+    </script>
+</body>
+</html>
